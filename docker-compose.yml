@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: automotive_car_backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://automotive:automotive@postgres:5432/automotive_car
+      CAMERA_STREAM_URL: ${CAMERA_STREAM_URL:-http://localhost:8081/stream.mjpg}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-local-jwt-secret}
+      JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-30}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+      RATE_LIMIT_GENERAL_REQUESTS: ${RATE_LIMIT_GENERAL_REQUESTS:-120}
+      RATE_LIMIT_AUTH_REQUESTS: ${RATE_LIMIT_AUTH_REQUESTS:-12}
+      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED:-true}
+      EMAIL_VERIFICATION_EXPIRES_MINUTES: ${EMAIL_VERIFICATION_EXPIRES_MINUTES:-60}
+      PUBLIC_UI_URL: ${PUBLIC_UI_URL:-http://localhost:5173}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-no-reply@automotive-car.local}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: automotive_car_postgres
+    environment:
+      POSTGRES_DB: automotive_car
+      POSTGRES_USER: automotive
+      POSTGRES_PASSWORD: automotive
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U automotive -d automotive_car"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
