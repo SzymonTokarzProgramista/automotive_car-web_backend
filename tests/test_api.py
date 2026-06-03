@@ -20,6 +20,37 @@ def test_login_user(client: TestClient):
     assert response.json()["access_token"]
 
 
+def test_login_normalizes_email(client: TestClient):
+    client.post("/auth/register", json={"email": "driver@example.com", "password": "secret-password"})
+    response = client.post("/auth/login", json={"email": " DRIVER@example.com ", "password": "secret-password"})
+
+    assert response.status_code == 200
+
+
+def test_reject_login_sql_injection_like_email(client: TestClient):
+    response = client.post("/auth/login", json={"email": "' OR 1=1 --", "password": "secret-password"})
+
+    assert response.status_code == 422
+
+
+def test_reject_login_empty_password(client: TestClient):
+    response = client.post("/auth/login", json={"email": "driver@example.com", "password": ""})
+
+    assert response.status_code == 422
+
+
+def test_reject_login_password_with_control_characters(client: TestClient):
+    response = client.post("/auth/login", json={"email": "driver@example.com", "password": "secret\npassword"})
+
+    assert response.status_code == 422
+
+
+def test_reject_login_oversized_password(client: TestClient):
+    response = client.post("/auth/login", json={"email": "driver@example.com", "password": "x" * 129})
+
+    assert response.status_code == 422
+
+
 def test_register_requires_email_verification_before_login(client: TestClient, monkeypatch):
     sent_tokens: list[str] = []
 
